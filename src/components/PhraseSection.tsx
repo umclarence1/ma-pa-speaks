@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Volume2 } from 'lucide-react';
 import ttsService from '@/services/ttsService';
+import { motion } from 'framer-motion';
 
 const PhraseSection: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState(categories[0].id);
@@ -23,13 +24,13 @@ const PhraseSection: React.FC = () => {
   return (
     <div className="py-4">
       <Tabs defaultValue={categories[0].id} value={activeCategory} onValueChange={setActiveCategory}>
-        <div className="mb-4 px-4">
-          <TabsList className="grid w-full grid-cols-5">
+        <div className="mb-4 px-4 overflow-x-auto pb-2">
+          <TabsList className="inline-flex min-w-full md:w-full">
             {categories.map((category) => (
               <TabsTrigger 
                 key={category.id} 
                 value={category.id}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 px-3 py-2"
               >
                 <span>{category.icon}</span>
                 <span className="hidden md:inline">{category.name}</span>
@@ -44,11 +45,14 @@ const PhraseSection: React.FC = () => {
               {phrases
                 .filter((phrase) => phrase.category === category.id)
                 .map((phrase) => (
-                  <div 
+                  <motion.div 
                     key={phrase.id}
-                    className={`phrase-button flex items-center justify-between ${
-                      speaking === phrase.id ? 'bg-ghana-gold/20' : ''
-                    }`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={`phrase-button flex items-center justify-between cursor-pointer 
+                      ${speaking === phrase.id ? 'bg-ghana-gold/20' : 'bg-white hover:bg-ghana-gold/5'} 
+                      transition-all duration-200 border-2 border-ghana-gold/40 rounded-lg px-4 py-3 shadow-sm hover:shadow-md`}
                     onClick={() => handleSpeak(phrase)}
                   >
                     <div className="flex flex-col items-start">
@@ -60,9 +64,9 @@ const PhraseSection: React.FC = () => {
                       variant="ghost"
                       className={`ml-2 ${speaking === phrase.id ? 'animate-pulse-gentle' : ''}`}
                     >
-                      <Volume2 size={18} className="opacity-80" />
+                      <Volume2 size={18} className={`${speaking === phrase.id ? 'text-ghana-green' : 'opacity-80'}`} />
                     </Button>
-                  </div>
+                  </motion.div>
                 ))}
             </div>
           </TabsContent>

@@ -1,9 +1,7 @@
 
 # Ma Pa Speaks - Ghanaian Text-to-Speech Solution
 
-## Project info
 
-**URL**: https://lovable.dev/projects/d2882712-9e1b-43d6-95c6-0edb80212358
 
 ## How can I edit this code?
 

@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
   DialogFooter
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -28,10 +29,20 @@ const Header = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [speechRate, setSpeechRate] = useState("normal");
 
+  const toggleDarkMode = (checked: boolean) => {
+    setDarkMode(checked);
+    // Apply dark mode to document
+    if (checked) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
   return (
-    <header className="p-4 border-b border-ghana-gold/30 bg-gradient-to-r from-white to-ghana-gold/5 flex items-center justify-between sticky top-0 z-10">
+    <header className="p-4 border-b border-ghana-gold/30 bg-gradient-to-r from-white to-ghana-gold/5 flex items-center justify-between sticky top-0 z-10 shadow-sm">
       <div className="flex items-center space-x-2">
-        <div className="w-10 h-10 rounded-full bg-ghana-gold flex items-center justify-center shadow-md">
+        <div className="w-10 h-10 rounded-full bg-ghana-gold flex items-center justify-center shadow-md hover:scale-105 transition-transform">
           <Volume className="text-white" size={20} />
         </div>
         <div>
@@ -46,8 +57,9 @@ const Header = () => {
       <div className="flex space-x-2">
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="hover:bg-ghana-gold/10">
+            <Button variant="ghost" size="icon" className="hover:bg-ghana-gold/10 relative overflow-hidden group">
               <Info size={20} />
+              <span className="absolute -bottom-10 left-0 w-full text-xs opacity-0 group-hover:opacity-100 group-hover:-translate-y-10 transition-all duration-300">Info</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
@@ -81,8 +93,9 @@ const Header = () => {
         
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="hover:bg-ghana-gold/10">
+            <Button variant="ghost" size="icon" className="hover:bg-ghana-gold/10 relative overflow-hidden group">
               <Settings size={20} />
+              <span className="absolute -bottom-10 left-0 w-full text-xs opacity-0 group-hover:opacity-100 group-hover:-translate-y-10 transition-all duration-300">Settings</span>
             </Button>
           </SheetTrigger>
           <SheetContent>
@@ -105,7 +118,7 @@ const Header = () => {
                 <Switch
                   id="dark-mode"
                   checked={darkMode}
-                  onCheckedChange={setDarkMode}
+                  onCheckedChange={toggleDarkMode}
                 />
               </div>
               

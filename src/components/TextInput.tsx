@@ -1,24 +1,61 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
-import { Volume2, Play, Settings2, Mic, Keyboard, Save } from 'lucide-react';
+import { Volume2, Play, Settings2, Mic, Keyboard, Save, VolumeX } from 'lucide-react';
 import ttsService from '@/services/ttsService';
 import { useToast } from "@/hooks/use-toast";
 import TwiKeyboard from './TwiKeyboard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const TextInput: React.FC = () => {
   const [text, setText] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
-  const [rate, setRate] = useState(0.9);
+  const [rate, setRate] = useState(0.8); // Slightly slower default for better pronunciation
   const [pitch, setPitch] = useState(1.0);
+  const [volume, setVolume] = useState(1.0);
+  const [selectedVoice, setSelectedVoice] = useState('en-US');
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voicesByLang, setVoicesByLang] = useState<Record<string, SpeechSynthesisVoice[]>>({});
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [savedPhrases, setSavedPhrases] = useState<string[]>([]);
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Load available voices when component mounts
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = ttsService.getVoices();
+      if (availableVoices.length > 0) {
+        setVoices(availableVoices);
+        setVoicesByLang(ttsService.getVoicesByLanguage());
+        
+        // Try to find a voice that might work better for African languages
+        const africanVoice = availableVoices.find(v => 
+          v.lang.startsWith('sw') || // Swahili
+          v.lang.startsWith('yo') || // Yoruba
+          v.lang.startsWith('zu') || // Zulu
+          v.lang.includes('GH')      // Ghana
+        );
+        
+        if (africanVoice) {
+          setSelectedVoice(africanVoice.lang);
+        }
+      }
+    };
+    
+    loadVoices();
+    
+    // Some browsers load voices asynchronously
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
   
   const handleSpeak = () => {
     if (!text.trim()) {
@@ -31,7 +68,7 @@ const TextInput: React.FC = () => {
     }
     
     setIsSpeaking(true);
-    ttsService.speak(text, { rate, pitch });
+    ttsService.speak(text, { rate, pitch, volume, voice: selectedVoice });
     
     // Visual feedback on speak button duration
     toast({
@@ -42,7 +79,12 @@ const TextInput: React.FC = () => {
     
     setTimeout(() => {
       setIsSpeaking(false);
-    }, text.length * 80); // Rough calculation based on text length
+    }, text.length * 100); // Longer calculation for better feedback
+  };
+
+  const handleStopSpeaking = () => {
+    ttsService.stop();
+    setIsSpeaking(false);
   };
 
   const handleSavePhrase = () => {
@@ -189,19 +231,51 @@ const TextInput: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
           
-          <Button 
-            onClick={handleSpeak} 
-            disabled={isSpeaking}
-            className={`bg-ghana-gold hover:bg-ghana-gold/90 text-white ${isSpeaking ? 'animate-pulse' : ''}`}
-          >
-            <Play size={16} className="mr-1" /> 
-            {isSpeaking ? "Speaking..." : "Speak"}
-          </Button>
+          {isSpeaking ? (
+            <Button 
+              onClick={handleStopSpeaking} 
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              <VolumeX size={16} className="mr-1" /> 
+              Stop
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleSpeak} 
+              className="bg-ghana-gold hover:bg-ghana-gold/90 text-white"
+            >
+              <Play size={16} className="mr-1" /> 
+              Speak
+            </Button>
+          )}
         </div>
       </div>
       
       {showSettings && (
         <div className="p-4 bg-muted/30 rounded-lg mb-3 animate-fade-in border border-ghana-gold/10">
+          <div className="mb-4">
+            <label className="text-sm font-medium mb-2 block">Voice Selection</label>
+            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a voice" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(voicesByLang).map(([lang, langVoices]) => (
+                  <div key={lang} className="pb-2">
+                    <div className="px-2 py-1.5 text-sm font-semibold bg-muted/50">
+                      {new Intl.DisplayNames([navigator.language], {type: 'language'}).of(lang) || lang}
+                    </div>
+                    {langVoices.map((voice) => (
+                      <SelectItem key={voice.voiceURI} value={voice.lang}>
+                        {voice.name}
+                      </SelectItem>
+                    ))}
+                  </div>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="mb-4">
             <div className="flex justify-between mb-1">
               <span className="text-sm font-medium">Speaking Rate</span>
@@ -221,7 +295,7 @@ const TextInput: React.FC = () => {
             </div>
           </div>
           
-          <div>
+          <div className="mb-4">
             <div className="flex justify-between mb-1">
               <span className="text-sm font-medium">Pitch</span>
               <span className="text-xs">{pitch.toFixed(1)}</span>
@@ -237,6 +311,25 @@ const TextInput: React.FC = () => {
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               <span>Lower</span>
               <span>Higher</span>
+            </div>
+          </div>
+          
+          <div>
+            <div className="flex justify-between mb-1">
+              <span className="text-sm font-medium">Volume</span>
+              <span className="text-xs">{Math.round(volume * 100)}%</span>
+            </div>
+            <Slider 
+              value={[volume]} 
+              min={0}
+              max={1}
+              step={0.1}
+              onValueChange={(value) => setVolume(value[0])} 
+              className="cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>Quieter</span>
+              <span>Louder</span>
             </div>
           </div>
         </div>
